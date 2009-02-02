@@ -4,78 +4,94 @@ var active_theme;
 var form_redigerades = null;
 var form_sparades = null;
 
-
-document.onkeypress = keyHandler;
-document.onmousedown = mouseHandler;
-
-/* Placerar redigerar länk i status-diven */
-var statusbar = $('statusbar');
-//var edit_link = document.createElement('div');
-var edit_link = document.createElement('a');
-edit_link.appendChild(document.createTextNode("Redigera"));
-edit_link.id = "editlink";
-edit_link.className = "deactive";
-edit_link.title = "Öppna/stäng redigeringsläge här";
-edit_link.setAttribute("accesskey", "q");
-edit_link.onclick = function() { 
-	if( location.search.match(/\&edit=1/) ) {
-		if(form_redigerades > form_sparades) {
-			var answer = confirm ("Är du säker på att du vill stänga av redigeringsläget?\nAlla dina ändringar kommer försvinna.");
-			if (!answer) { return false; }
-		}
-		location.search = location.search.replace(/\&edit=1/,'');
-	} else { location.search +='&edit=1'; }
+/* A create element helper that can add id, className and innerHTML directly.
+ * @param name TagName + '#' + id + '.' + className + '.' + className ...
+ * @html innerHTML to be added on the new element (or null to avoid using innerHTML)
+ * @return new Element
+ * Example: var link2 = dce('a#link2', 'linktext 2');
+ */
+function dce(name,html) {
+	var arr = name.replace(/([$_.#])/g,',$1').split(/,/);
+	if (!arr.length) return document.createElement(name);
+	var	elt = document.createElement(arr[0]);
+	for (var i=1; i<arr.length; i++) {
+		var x=arr[i];
+		if (x.match(/^[$#]/)) elt.id = x.substring(1,x.length);
+		else if (x.match(/^[_.]/)) elt.addClass( x.substring(1,x.length) );
+	}
+	if (html) elt.innerHTML = html;
+	return elt;
 }
-statusbar.appendChild(edit_link);
+
+var edit_link;
+/*
+ * Anropas av init() i bigform-2.js
+ */
+function form_edit_init() {
+	document.onkeypress = keyHandler;
+	document.onmousedown = mouseHandler;
+
+	/* Placerar länk Redigera i status-diven */
+	var statusbar = $('statusbar');
+	edit_link = dce("a#editlink.deactive", "Redigera");
+	edit_link.title = "Öppna/stäng redigeringsläge här";
+	edit_link.setAttribute("accesskey", "q");
+	edit_link.onclick = function() { 
+		if( location.search.match(/\&edit=1/) ) {
+			if(form_redigerades > form_sparades) {
+				var answer = confirm ("Är du säker på att du vill stänga av redigeringsläget?\nAlla dina ändringar kommer försvinna.");
+				if (!answer) { return false; }
+			}
+			location.search = location.search.replace(/\&edit=1/,'');
+		} else { location.search +='&edit=1'; }
+	}
+	statusbar.appendChild(edit_link);
+	if (location.search.match(/edit/)) toggleEditMode();
+}
+
 
 
 /*
  * Slår på/av redigeringsläget
+ * Vid laddning av sidan anropas denna av en onload-event (se bigform-2.js)
+ * 
  */
 function toggleEditMode() {
 	if(edit_link.className == "deactive") { // Knappen var "av", så knappen slås på.
-
+	
 		edit_mode = true;
 		showEditLink();
 		edit_link.className = "active";			
 		var f = $('form_');	
 		f.getElements('label').each( function(elt) {elt.addEvent('click',function(){if(edit_mode) elt.inlineEdit()}); } );
 		f.getElements('.question').each(function(elt) { elt.title = "Dubbelklicka för frågans inställningar"; elt.addEvent('dblclick',function(){ if(edit_mode) showEditBox(this);});});
-		f.getElements('.text').each(function(elt) { elt.title = "Dubbelklicka för redigera text"; elt.addEvent('dblclick',function(){ if(edit_mode) edit_text_2(this);});});
-		f.getElements('.scale-group .headline').each( function(elt) { elt.title = "Dubbelklicka för likert-gruppens inställningar"; elt.addEvent('dblclick',function(){ alert(edit_mode); if(edit_mode) {showGroupEditBox(this.parentNode);}}); } );
+		f.getElements('.text').each(function(elt) { elt.title = "Dubbelklicka för att redigera text"; elt.addEvent('dblclick',function(){ if(edit_mode) edit_text_2(this);});});
+		f.getElements('.scale-group .headline').each( function(elt) { elt.title = "Dubbelklicka för likert-gruppens inställningar"; elt.addEvent('dblclick',function(){ if(edit_mode) showGroupEditBox(this.parentNode);}); } );
 		f.getElements('.question h5 .qtext').each( function(elt) {elt.addEvent('click',function(){if(edit_mode) /*elt.inlineEdit()*/ edit_text_2(elt)}); } );
 		f.getElements('.question h5 .number').each( function(elt) {elt.addEvent('click',function(){ if(edit_mode) /*elt.inlineEdit()*/ edit_text_2(elt)}); } );	
 		
-		var toolbar = document.createElement("div");
-		toolbar.id = "toolbar";
-		toolbar.innerHTML = '<p><strong><a href="' + path("panel.asp") + '">Startsidan</strong></p>';
+		var toolbar = dce("div#toolbar", "<p><strong>Redigerar…</strong></p>");
 		document.getElementsByTagName("body")[0].appendChild(toolbar);
 		
 		var tool_p = toolbar.getElementsByTagName("p")[0];
 		
-		var a = document.createElement("a");
+		var a = dce("a", "Lägg till fråga");
 		a.setAttribute("href", "#");
-		
+
 		a.onclick = function () { new_question(); return false; }
-				
-		var numbers = document.createElement("a");
+
+		var numbers = dce("a", "Ordna frågenummer");
 		numbers.href = "#";
-		numbers.appendChild(document.createTextNode("Ordna frågenummer"));
 		numbers.onclick = function() { refreshNumbers(); return false; }
-		
-		
-		
-		a.appendChild(document.createTextNode("Lägg till fråga"));
-		
-		var aa = document.createElement("a");
+
+		var aa = dce("a", "Bygg");
 		aa.setAttribute("href", "#statistik");
-		aa.appendChild(document.createTextNode("Bygg resultattexter"));
 		aa.onclick = function() {
-			var textarea_div = document.createElement("div");
-			textarea_div.id = "statistik";
+			var textarea_div = dce("div#statistik",null);
+
 			var textarea_form = document.createElement("form");
 			textarea_form.setAttribute("method", "post");
-			textarea_form.setAttribute("action", path("bygg_statistik.asp"));
+			textarea_form.setAttribute("action", "bygg_statistik.asp");
 			var textarea = document.createElement("textarea");
 			textarea.setAttribute("cols", "80%");
 			textarea.setAttribute("rows", "2");
@@ -90,53 +106,41 @@ function toggleEditMode() {
 			
 			textarea_form.appendChild(textarea);
 			textarea_form.appendChild(textarea_link);
+
 			textarea_div.appendChild(textarea_form);
-			
 			$("addQuestion").appendChild(textarea_div);
 			
 			//console.info(document.getElementsByTagName("html")[0].innerHTML);
 			return false;
 		}
 		
-		var spara = document.createElement("a");
+		var spara = dce("a", "Spara");
 		spara.setAttribute("href", "#bygg");
-		spara.appendChild(document.createTextNode("D: dold spara"));
-		spara.onclick = function() {
-			save(true, true);
-			return false;
-		}
+		spara.onclick = function() { save(true, true);return false; }
 		
-		var spara_no_bg = document.createElement("a");
+		var spara_no_bg = dce("a","Spara&visa");
 		spara_no_bg.setAttribute("href", "#bygg2");
-		spara_no_bg.appendChild(document.createTextNode("Spara"));
-		spara_no_bg.onclick = function() {
-			save(false, false);
-			return false;
-		}
+		spara_no_bg.onclick = function() { save(false, false); return false; }
 		
-		var manual = document.createElement("a");
+		var manual = dce("a", "Om frågeredigering");
 		manual.href = "#";
-		manual.appendChild(document.createTextNode("Om frågeredigering"));
-		manual.onclick = function() { alert("Hjälptext kommer senare...\nCTRL + q = Stäng/öppna redigeringsläge\nCTRL + u = Flytta markerat element uppåt\nCTRL + n = Flytta markerat element ner"); }
+		manual.onclick = function() { alert("Hjälptext kommer senare...\nCTRL + q = Stäng/öppna redigeringsläge\nCTRL + u = Flytta markerat element uppåt\nCTRL + n = Flytta markerat element ner"); return false; }
 		
-		var toggleTheme = document.createElement("a");
+		var toggleTheme = dce("a", "Färgtema");
 		toggleTheme.href = "#";
-		toggleTheme.appendChild(document.createTextNode("Färgtema"));
 		toggleTheme.onclick = function() {
 			if(active_theme == "yellow") { switchStyleSheet(fapp.blue); active_theme="blue"; this.innerHTML = "Färgtema blå"; }
 			else { switchStyleSheet(fapp.yellow); active_theme="yellow"; this.innerHTML = "Färgtema gul"; }
 			return false;
 		}
 				
-		var fast_import = document.createElement("a");
+		var fast_import = dce("a", "Snabb-import");
 		fast_import.href = "#";
-		fast_import.appendChild(document.createTextNode("Snabb-import"));
 		fast_import.onclick = function() { show_fast_import(toolbar); return false; }
 		
-		var zebra = document.createElement("a");
+		var zebra = dce("a", "Randa om");
 		zebra.href="#toolbar";
 		zebra.onclick = function() { refreshOdd(); return false; }
-		zebra.appendChild(document.createTextNode("Randa om"));
 		
 		// Omnumrera | Randa om | Färgtema ---- Ny fråga | Snabbimport --- Debug: Form-spara, resultattxt  --- Om...
 		var tabb = "\u00a0\u00a0\u00a0\u00a0\u00a0";
@@ -152,7 +156,7 @@ function toggleEditMode() {
 		tool_p.appendChild(a);
 		tool_p.appendChild(document.createTextNode(" | "));
 		tool_p.appendChild(fast_import);
-		tool_p.appendChild(document.createTextNode(tabb));
+		tool_p.appendChild(document.createTextNode(tabb + "Debug: "));
 		tool_p.appendChild(spara);
 		tool_p.appendChild(document.createTextNode(" | "));
 		tool_p.appendChild(spara_no_bg);
@@ -190,47 +194,39 @@ function toggleEditMode() {
 	//window.location.hash="toolbar";
 }
 
-var import_active = false;
-
 /**
  * Visar snabb-import rutan.
  * @param where - Vart snabb-importen ska visas. I vilket DOM-element den ska placeras i
  */
 function show_fast_import(where) {
-	var import_box = null;
-	if(!import_active) {
-		import_box = document.createElement("div");
-		import_box.id = "import";
+	var import_box = document.getElementById("import");
+	if(!import_box) {
+		import_box = dce("form#import", '<p><br>Importera: <select><option>Placering</option><option>1</option><option>2</option></select> <a href="#">Infoga</a> <a href="#">Ersätt</a> <a href="#">Infoga allt</a></p><textarea style="font-size: 102%;" cols="120" rows="10"></textarea>');
 		import_box.name = "import";
-		import_box.innerHTML = '<form><p>Importera:</p><textarea style="font-size: 102%;" cols="120" rows="20"></textarea><select><option>Placering</option><option>1</option><option>2</option></select> <a href="#">Infoga</a> <a href="#">Ersätt</a> <a href="#">Infoga allt</a></form>';
 		where.appendChild(import_box);
-		import_active = true;
 	} else {
-		import_box = document.getElementById("import");
-		if (import_box) import_box.parentNode.removeChild(import_box);
-		import_active = false;
+		import_box.parentNode.removeChild(import_box);
 	}
 }
 
 /**
  * Visar "Lägg till fråga" länk längst ner
- * OBS! Funktionen används troligen inte, funktionaliteten har flyttats upp till redigeringsmenyn.
+ * Används av toggleEditMode()
  */
 function showEditLink() {
-	var addQuestion = document.getElementById("addQuestion");
+	var addQuestion = $("addQuestion");
 	if (addQuestion) {
-	addQuestion = addQuestion.parentNode.removeChild(addQuestion); //
-	} else {
-		// Skapar createQuestion p-elementet
-		addQuestion = document.createElement("p");
-		addQuestion.id = "addQuestion";
+	    addQuestion = addQuestion.parentNode.removeChild(addQuestion);  //(Ta bort ifall den fanns?? Eller vad haender har?)
 	}
-	if (edit_mode) { fapp.currentPageDiv.appendChild(addQuestion); }
+	else addQuestion = dce("p#addQuestion"); // Skapar createQuestion p-elementet
+
+	if (!fapp.currentPageDiv) alert('Problem med addQuestion. Orsak: toggleEditMode ska anropas EFTER onload-laddning av frageapp(fapp).');
+	if (edit_mode) fapp.currentPageDiv.appendChild(addQuestion);
 }
 
 /**
  * Tar bort "Lägg till fråga" länken längst ner.
- * OBS! Funktionen används troligen inte, funktionaliteten har flyttats upp till redigeringsmenyn.
+ * Används av toggleEditMode()
  */
 function removeEditLink() {
 	var addQuestion = document.getElementById("addQuestion");
@@ -372,28 +368,32 @@ function save(start_autosave, in_background) {
 	var saved = document.getElementById("saved");
 	var date = new Date();
 	
-	if(in_background == true) {
-		try {
-			textareaForm.send({
-				onComplete: function() {
-					date = form_har_sparats();
-					saved.innerHTML = " Sparades kl " + (date.getHours()<10 ? "0" : "") + date.getHours() + ":" + (date.getMinutes()<10 ? "0" : "") + date.getMinutes();
-				}
-			});
-		} catch(NS_ERROR_FILE_NOT_FOUND) {
-				console.warn("Kunde inte spara formuläret, hittade inte .asp-filen : " + textareaForm.getAttribute("action"));
-				alert("Kunde inte spara formuläret, hittade inte .asp-filen : " + textareaForm.getAttribute("action"));
-				alert("hej hopp");
-				saved.innerHTML = " Misslyckades med att spara formuläret, kl " + (date.getHours()<10 ? "0" : "") + date.getHours() + ":" + (date.getMinutes()<10 ? "0" : "") + date.getMinutes();
-		}
-	}
-	else if (in_background == false) {
-		textareaForm.submit();
+	if(!in_background) textareaForm.submit();
+	else try {
+		saved.innerHTML = " Sparar... (" + humanTime(date) + ")";
+		textareaForm.send({
+			onComplete: function() {
+			    date = form_har_sparats();  //Gor mootools nagot skumt, eller hur kommer det sig
+				saved.innerHTML = " Sparades kl " + humanTime(date); //att saved ar atkomlig fran onComplete-funktionen?
+			}
+		});
+	} catch(e) {
+		console.warn("Kunde inte spara formuläret via " + textareaForm.getAttribute("action") + " -- Feltext: " + e.description);
+		saved.innerHTML = " <abbr title='" + e.description + "'>Misslyckades</abbr> med att spara formuläret, kl " + humanTime(date);
 	}
 	
 	textarea_div.parentNode.removeChild(textarea_div);
 		
 	if(start_autosave) autoEditSave(true);
+}
+
+/**
+ * Formaterar klockslag med 0-utfyllnad.
+ * @return En textsträng
+ */
+function humanTime(d) {
+	var h=d.getHours(),m=d.getMinutes();
+	return (h<10 ? "0" : "") + h + ":" + (m<10 ? "0" : "") + m;
 }
 
 /**
@@ -563,37 +563,29 @@ function new_question() {
 			}
 		}
 		var link_p = document.createElement("p");
-		var a = document.createElement("a");
+		var a = dce("a", "Färdig");
 		a.href = "#addQuestion";
-		$(a).onclick = function() {
+		$(a).onclick = function() {  //$() behovs for att kunna anvanda this har langre ned (korrekt uppfattat ?)
 			//question("create", document.getElementById('createQuestion'));
 			old_question("create", document.getElementById('createQuestion'));
 			
 			delete_question(this.parentNode.parentNode);
 			return false;
 		};
-		a.appendChild(document.createTextNode("Färdig"));
 		link_p.appendChild(a);
 		
 		var select = p.appendChild(select);
 		p.appendChild(document.createElement("br"));
-		
-		
-		
 		form.appendChild(p);
 		
-		var form = div_question.appendChild(form);
+		var form = div_question.appendChild(form);  //fulhack-varning
 		
-		var spec = document.createElement("div");
-		spec.id = "spec";
-		
+		var spec = dce("div#spec",null);
 		form.appendChild(spec);
-		//form.appendChild(spec_checkbox);
 		
 		form.appendChild(link_p);
 		
 		var addQuestion = document.getElementById("addQuestion");
-		
 		addQuestion.parentNode.insertBefore(div_question, addQuestion);
 		
 		select.focus();
@@ -1033,7 +1025,7 @@ function create_scale_answer(question_number, scale, add_prio, headline, vetej, 
  * @param question - Frågan som form-fält ska hämtas ifrån.
  * @param getClass - Används om man vill hämta form-fält från ett annat klassnamn i frågan, som standard hämtas fälten från '.answer'.
  * @return en array som innehåller svarsobject (answer).
- * {?} Tveksam till om funktionen används.
+ * Denna används av question() och showEditBox()
  */
 function fetch(question, getClass) {
 	if (!getClass) { getClass = ""; }
@@ -2384,7 +2376,7 @@ function keyHandler(e) {
 	if(code == 27) { if(targ.nodeName.toLowerCase() == "input" || targ.nodeName.toLowerCase() == "textarea") { targ.blur(); } return false; } // ESC
 	
 	if(e.shiftKey && e.ctrlKey && code == 83) { saveForm(); return false; } // SHIFT + CTRL + S
-	if(e.shiftKey && e.ctrlKey && code == 82) { toggleEditMode(); return false; } // SHIFT + CTRL + R
+	if(e.shiftKey && e.ctrlKey && code == 82) { toggleEditMode(); return false; } // SHIFT + CTRL + Q
 
 	if(e.shiftKey && e.ctrlKey && code == 79) { refreshOdd(); return false; } // SHIFT + CTRL + R
 	
@@ -2411,9 +2403,9 @@ function mouseHandler(e) {
 				
                 var divQ = fapp.findElementDiv(targ);
                 if(divQ) setSelect(divQ);
-                else { alert("klicka på en fråga istället"); fapp.logga('Hogerklick utanfor - prova klicka pa en fraga istallet!'); }
+                else fapp.logga('Hogerklick utanfor - prova klicka pa en fraga istallet!');
 
-                if ($(targ).hasClass("headline")) { alert("v\303\244lj skala!!!"); fapp.logga("v\303\244lj skala!!!"); }
+                if ($(targ).hasClass("headline")) { fapp.logga("v\303\244lj skala!!!"); }
 
                 if (ev.stopPropagation) ev.stopPropagation(); //ger ingen nytta i FF3
                 return false;
