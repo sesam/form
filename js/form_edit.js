@@ -13,7 +13,7 @@ var form_sparades = null;
 function dce(name,html) {
 	var arr = name.replace(/([$_.#])/g,',$1').split(/,/);
 	if (!arr.length) return document.createElement(name);
-	var	elt = document.createElement(arr[0]);
+	var	elt = $(document.createElement(arr[0]));
 	for (var i=1; i<arr.length; i++) {
 		var x=arr[i];
 		if (x.match(/^[$#]/)) elt.id = x.substring(1,x.length);
@@ -27,7 +27,7 @@ var edit_link;
 /*
  * Anropas av init() i bigform-2.js
  */
-function form_edit_init() {
+var form_edit_init = function() {
 	document.onkeypress = keyHandler;
 	document.onmousedown = mouseHandler;
 
@@ -66,7 +66,8 @@ function toggleEditMode() {
 		f.getElements('label').each( function(elt) {elt.addEvent('click',function(){if(edit_mode) elt.inlineEdit()}); } );
 		f.getElements('.question').each(function(elt) { elt.title = "Dubbelklicka för frågans inställningar"; elt.addEvent('dblclick',function(){ if(edit_mode) showEditBox(this);});});
 		f.getElements('.text').each(function(elt) { elt.title = "Dubbelklicka för att redigera text"; elt.addEvent('dblclick',function(){ if(edit_mode) edit_text_2(this);});});
-		f.getElements('.scale-group .headline').each( function(elt) { elt.title = "Dubbelklicka för likert-gruppens inställningar"; elt.addEvent('dblclick',function(){ if(edit_mode) showGroupEditBox(this.parentNode);}); } );
+		alert("lägger till click-event");
+		f.getElements('.scale-group .headline').each( function(elt) { elt.title = "Dubbelklicka för likert-gruppens inställningar"; elt.addEvent('dblclick',function(){ alert("headline"); if(edit_mode) showGroupEditBox(this.parentNode);}); } );
 		f.getElements('.question h5 .qtext').each( function(elt) {elt.addEvent('click',function(){if(edit_mode) /*elt.inlineEdit()*/ edit_text_2(elt)}); } );
 		f.getElements('.question h5 .number').each( function(elt) {elt.addEvent('click',function(){ if(edit_mode) /*elt.inlineEdit()*/ edit_text_2(elt)}); } );	
 		
@@ -323,7 +324,9 @@ function save(start_autosave, in_background) {
 	inner_html = inner_html.replace(/<li><label class=\"textfield\">/g, '<li class="checkedtextfield textfield"><label class="textfield">');	
 	inner_html = inner_html.replace(/<div style=\"display: block;\"/g, '<div');
 	inner_html = inner_html.replace(/<div style=\"display: none;\"/g, '<div');
-
+	
+	inner_html = inner_html.replace(/\$included=\"null\"/g, '');
+	
 	inner_html= inner_html.replace(/\n[ \t]*[\r\n]+/g, '\n');
 	inner_html= inner_html.replace(/^[ \t]*[\r\n]+/g, '')
 	orginal_html= orginal_html.replace(/\n[ \t]*[\r\n]+/g, '\n');
@@ -2205,7 +2208,7 @@ function setSelect(question) {
 				removeField.className = "delete";
 				removeField.title = "Ta bort frågan";
 				removeField.onclick = function() {
-					var selected_question_parent = selected_question.parentNode;
+					var selected_question_parent = $(selected_question.parentNode);
 					
 					var q;
 					if($(selected_question).hasClass("text")) {
