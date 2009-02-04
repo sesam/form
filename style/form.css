@@ -42,7 +42,8 @@ h5 {
 	margin-left : 3em;
 	line-height : 1.7em; /* ändrad från 1.5 */
 	padding : 0 310px 0 0;
-	font-weight : normal; }
+	font-weight : normal; 
+	position: relative;}
 
 /** Borde finnas .scale-group.priority **/
 .scale-group.priority h5 {
@@ -55,11 +56,18 @@ h5 span.number {
 	width : 2.5em;
 	padding-right : 0.5em; 
 	margin-left : -2.5em; 
-	top: 0.5em;
-	font-weight : bold;}
+	/*top: 0.5em; Kommenterades bort: 2009-02-03 */
+	
+	font-weight : bold; 
+	left: 0; }
+
+*+html h5 span.number {
+	top: -0.3em; /* IE7 */
+}
+
 
 .last h5 span.number {
-	top: 0.5em; /* Utan denhär hamnar sista frågan i scale-group (som har lite extra text i en SPAN) för långt ner. */ }
+	xtop: 0.5em; /* Utan denhär hamnar sista frågan i scale-group (som har lite extra text i en SPAN) för långt ner. */ }
 	
 ul {
 	list-style : none; }
@@ -131,7 +139,7 @@ div.question, div.headline {
 	
 div.question {
 	clear : left;
-	background-color : #FAFAFA;
+	background-color : #E0E0E0;
 	border-bottom : 1px solid #D1D1D1;
 	border-left : 3px solid #fff;
 	border-right : 3px solid #fff;
@@ -630,7 +638,7 @@ div.question .edit ul { float: none; clear: left; }
 /* Delete knappen */
 .delete { width: 16px; height: 16px; background: transparent url("../images/delete.gif") no-repeat; float: left; margin-top: 2px; padding-right: 7px; cursor: pointer; }
 .delete span { position: absolute; left: -9999px; }
-.scale-group .delete { float: none; }
+.scale-group .action .delete { float: none;}
 
 .question .edit ul input, .scale-group .edit ul { width: 100%; }	/* testar lite med IE7 (x)- 23okt*/
 .question .edit ul input, .scale-group .edit ul li { width: 80%;}   /* testar lite med IE7 (x)- 23okt*/
@@ -650,8 +658,8 @@ div.question .edit ul { float: none; clear: left; }
 input.textEdit, input.textEdit:focus { margin: 0; margin-left: -1px;width:99.5%; font-size:100%; border: 0; background-color: #EAE2DE; border-bottom: 1px solid brown; font-family: Helvetica, Verdana;  }
 .textEdit { border: 1px solid brown; background-color: #EAE2DE; }
 
-div#action { display: inline; xposition: absolute; top: 5px; right: 347px; }
-#action div, #action a { margin-right: 0.5em; color: #000; font-weight: bold;}
+div#action { display: inline; xposition: absolute; top: 5px; right: 347px; float: left;}
+#action div, #action a { margin-right: 0.5em; color: #000; font-weight: bold; float: left;}
 #action .add { font-size: 130%; text-decoration: none; }
 #action a { text-decoration: none; font-size: 140%; }
 #action a:hover { background-color: #E4B6B4; xtext-decoration: underline; }
