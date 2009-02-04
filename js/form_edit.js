@@ -58,22 +58,18 @@ var form_edit_init = function() {
  */
 function toggleEditMode() {
 	if(edit_link.className == "deactive") { // Knappen var "av", så knappen slås på.
-	
 		edit_mode = true;
 		showEditLink();
 		edit_link.className = "active";			
-		var f = $('form_');	
-		f.getElements('label').each( function(elt) {elt.addEvent('click',function(){if(edit_mode) elt.inlineEdit()}); } );
+		var f = $('form_');
+		/* f.getElements('label').each( function(elt) {elt.addEvent('click',function(){if(edit_mode) elt.inlineEdit()}); } );  -- [?] Används denna?  */ 
 		f.getElements('.question').each(function(elt) { elt.title = "Dubbelklicka för frågans inställningar"; elt.addEvent('dblclick',function(){ if(edit_mode) showEditBox(this);});});
 		f.getElements('.text').each(function(elt) { elt.title = "Dubbelklicka för att redigera text"; elt.addEvent('dblclick',function(){ if(edit_mode) edit_text_2(this);});});
-		alert("lägger till click-event");
-		f.getElements('.scale-group .headline').each( function(elt) { elt.title = "Dubbelklicka för likert-gruppens inställningar"; elt.addEvent('dblclick',function(){ alert("headline"); if(edit_mode) showGroupEditBox(this.parentNode);}); } );
+		f.getElements('.scale-group .headline').each( function(elt) { elt.title = "Dubbelklicka för likert-gruppens inställningar"; elt.addEvent('dblclick',function(){ if(edit_mode) showGroupEditBox(this.parentNode);}); } );
 		f.getElements('.question h5 .qtext').each( function(elt) {elt.addEvent('click',function(){if(edit_mode) /*elt.inlineEdit()*/ edit_text_2(elt)}); } );
 		f.getElements('.question h5 .number').each( function(elt) {elt.addEvent('click',function(){ if(edit_mode) /*elt.inlineEdit()*/ edit_text_2(elt)}); } );	
-		
-		var toolbar = dce("div#toolbar", "<p><strong>Redigerar…</strong></p>");
+		var toolbar = dce("div#toolbar", "<p><strong><a href="+path("panel.asp")+">Huvudsidan</a></strong></p>");
 		document.getElementsByTagName("body")[0].appendChild(toolbar);
-		
 		var tool_p = toolbar.getElementsByTagName("p")[0];
 		
 		var a = dce("a", "Lägg till fråga");
@@ -114,7 +110,6 @@ function toggleEditMode() {
 			//console.info(document.getElementsByTagName("html")[0].innerHTML);
 			return false;
 		}
-		
 		var spara = dce("a", "Spara");
 		spara.setAttribute("href", "#bygg");
 		spara.onclick = function() { save(true, true);return false; }
@@ -177,7 +172,6 @@ function toggleEditMode() {
 		f.getElements('.question').each(function(elt) { elt.title = "" });
 		f.getElements('.text').each(function(elt) { elt.title = "" });
 		f.getElements('.scale-group .headline').each( function(elt) { elt.title = ""});
-		
 		
 		edit_link.className = "deactive";
 		removeEditLink();
@@ -264,7 +258,7 @@ function autoEditSave(run) {
 	console.info("AutoEditsparning: on");
 	if (!run && autoEditSave_) clearInterval(autoEditSave_);
 	if (run)  {
-		if(form_redigerades > form_sparades) save();
+		if(form_redigerades > form_sparades) save(null, true);
 		if(!autoEditSave_) autoEditSave_ = setInterval("autoEditSave(true)", 60 * 1 * 1000);
 	}
 }
@@ -287,7 +281,6 @@ function save(start_autosave, in_background) {
 	textarea.setAttribute("name", "html");
 	textarea.style.display = "none";
 	var textarea_link = document.createElement("input");
-	
 	var editlink = document.getElementById("editlink");
 	var editlink_parent = editlink.parentNode;
 	var addQuestion = document.getElementById("addQuestion");
@@ -295,7 +288,6 @@ function save(start_autosave, in_background) {
 	editlink_parent.removeChild(editlink);
 	//var toolbar = document.getElementById("toolbar");
 	//if(toolbar) toolbar.parentNode.removeChild(toolbar);
-	
 	
 	if(addQuestion) { addQuestion.parentNode.removeChild(addQuestion); }
 	
@@ -309,7 +301,6 @@ function save(start_autosave, in_background) {
 	innerClone.getElements('.question').each(function(elt) { elt.removeAttribute('title') });
 	innerClone.getElements('.text').each(function(elt) { elt.removeAttribute('title') });
 	innerClone.getElements('.scale-group .headline').each(function(elt) { elt.removeAttribute('title') });
-	
 	
 	var inner_html = innerClone.innerHTML;
 
@@ -352,6 +343,7 @@ function save(start_autosave, in_background) {
 	editlink_parent.appendChild(editlink);
 	addQuestion_parent.appendChild(addQuestion);
 	
+	
 	var title = document.createElement("input");
 	title.value = document.getElementsByTagName("h1")[0].innerHTML;
 	title.name = "title";
@@ -367,12 +359,11 @@ function save(start_autosave, in_background) {
 	textarea_form.appendChild(theme);
 	aq.appendChild(textarea_div);
 	
-	var textareaForm = document.getElementById("textareaform");
+	var textareaForm = $("textareaform"); // document.getElementById("textareaform")
 	var saved = document.getElementById("saved");
 	var date = new Date();
-	
 	if(!in_background) textareaForm.submit();
-	else try {
+	try {
 		saved.innerHTML = " Sparar... (" + humanTime(date) + ")";
 		textareaForm.send({
 			onComplete: function() {
@@ -383,11 +374,13 @@ function save(start_autosave, in_background) {
 	} catch(e) {
 		console.warn("Kunde inte spara formuläret via " + textareaForm.getAttribute("action") + " -- Feltext: " + e.description);
 		saved.innerHTML = " <abbr title='" + e.description + "'>Misslyckades</abbr> med att spara formuläret, kl " + humanTime(date);
+		return false;
 	}
-	
 	textarea_div.parentNode.removeChild(textarea_div);
 		
 	if(start_autosave) autoEditSave(true);
+	
+	return false;
 }
 
 /**
