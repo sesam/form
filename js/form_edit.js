@@ -2233,21 +2233,25 @@ function setSelect(question) {
 				new_question.onclick = function() {
 					var old_select = selected_question;
 				
-					setSelect(selected_question);
+					setSelect(selected_question); // Avmarkerar den markerade frågan
 				
 					var temp = $(old_select).clone(); // Nya frågan
 					temp.injectAfter(old_select);
-					temp.removeClass("selected_question");
+					temp.removeClass("selected_question"); // [?] Kanske inte behövs?
 					
 					
 					var set_onclick = function(qu, scalegroup) {
 						var qtext = $(qu).getElement(".qtext");
 						var number = $(qu).getElement(".number");
 						qtext.innerHTML = "Ny fråga";
-						qtext.onclick = null;
-						//qtext.onclick = function() { edit_text_2(this); };
+						
+						$(qtext).removeEvents('click');
+						qtext.onclick = function() { edit_text_2(this); };
+						
 						number.innerHTML = 0;
-						//number.onclick = function() { edit_text_2(this); };
+						$(number).removeEvents('click');
+						number.onclick = function() { edit_text_2(this); };
+						
 						if(!scalegroup) temp.ondblclick = function() { showEditBox(this); }
 					}
 					
@@ -2304,6 +2308,8 @@ function setSelect(question) {
 		}
 	}
 }
+
+
 
 /**
  * Flyttar den markerade frågan antingen upp eller ner.
