@@ -1186,7 +1186,7 @@ function question(action, question) {
 				li.className = "checkedtextfield";
 				label.className = "textfield";
 				input.name = "t" + input.name.replace(/q/,'') + "_" + (i + 1);
-				input.value = null;
+				input.value = "";
 				
 				label.appendChild(document.createTextNode(answer.label + " "));
 				label.appendChild(input);
@@ -1199,7 +1199,7 @@ function question(action, question) {
 					li.className = "radiotextfield";
 					label.className = "textfield";
 					input.name = "t" + input.name.replace(/q/,'') + "_" + (i + 1);
-					input.value = null;
+					input.value = "";
 					
 					label.appendChild(document.createTextNode(answer.label + " "));
 					label.appendChild(input);
