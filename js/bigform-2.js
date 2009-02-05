@@ -1,5 +1,17 @@
 ﻿var fapp = { onSelect: function(){} };
 var pageNav;
+var orginal_html = document.getElementById("form_").innerHTML;
+
+if (!window.console || !console.firebug)
+{
+    var names = ["log", "debug", "info", "warn", "error", "assert", "dir", "dirxml",
+    "group", "groupEnd", "time", "timeEnd", "count", "trace", "profile", "profileEnd"];
+
+    window.console = {};
+    for (var i = 0; i < names.length; ++i)
+        window.console[names[i]] = function() {}
+}
+
 
 // Get a nicely caching mootools-version via google!   --- http://code.google.com/apis/ajax/documentation/
 // Though it seems they are missing a way to populate cache without evalig the contents of the .js file.
@@ -11,35 +23,19 @@ function init() {
 	if (!document.getElementsByTagName) { return false; }
 	
 	prepareForm();
+	
 
 	fapp = new formApplication();
 	pageNav = fapp; // tas bort först efter att alla gamla form*.html - filer har makulerats
-	FancyForm.onSelect = fapp.onSelect; //whee hoo!! monkeypatching ?
-
-	
-	fapp.lang = document.getElementsByTagName('html')[0].lang;
-	if ('sv'==fapp.lang) {
-		fapp.obl_text = "Det finns obligatoriska frågor som ej besvarats.";
-		fapp.obl_text2= " Var god besvara ";
-		fapp.obl_text3= "fråga";
-		fapp.unanswered_text= "Obesvarade frågor har markerats med gul bakgrund."
-	} else {
-		//english and default is the same, and only needed for foreign languages since 'sv' is the master translation.
-		fapp.obl_text = fapp.messageStore_default['obl_text'] = "There are some obligatory questions still unanswered.";
-		fapp.obl_text2= fapp.messageStore_default['obl_text2']= " Please address ";
-		fapp.obl_text3= fapp.messageStore_default['obl_text3']= "question";
-		fapp.unanswered_text= fapp.messageStore_default['unanswered_text'] = "Unanswered questions are marked with a yellow background."
-
-		var o=document.createNode('script');
-		o.src='js/translations.js';
-		document.getElementById('form').appendNode(o);
-	}
+	FancyForm.onSelect = fapp.onSelect; //whee hoo!! monkeypatching ?	
 
 	if (!location.search.match(/print/)) {
 		fapp.loader();
 	} else {
 		fapp.setPageClass('print');		
 	}
+
+	if (form_edit_init) form_edit_init();
 }
 
 function addLoadEvent(func) {
@@ -56,18 +52,89 @@ function addLoadEvent(func) {
   }
 }
 
-function hasClassName(tempClassNames, wantedClassName) {
-	var re = new RegExp('\b' + wantedClassName + '\b');
-	return tempClassNames.match(re);
+/*
+ * Hämtar första textNoden den hittar i ett element.
+ * @param - Elementet som ska sökas igenom.
+ */
+function getFirstTextNode(x) {
+	var children = x.childNodes;
+	for (i=0;i<children.length;i++) { 
+		if (children[i].nodeType==3) return children[i].data;
+	}
 }
 
+/*
+ * Placerar ett element efter ett element i DOM-trädet.
+ * @param new_element - Det nya elementet.
+ * @param target_element - Elementet i DOM-trädet som det nya elementet ska placeras under/efter.
+ */
+function insertAfter(new_element, target_element) {
+	var parent = target_element.parentNode;
+	if (parent.lastChild == target_element) {
+		parent.appendChild(new_element);
+	} else {
+		parent.insertBefore(new_element, target_element.nextSibling);
+	}
+}
+
+/**
+ * Anpassar storleken på textarea-element efter innehållet.
+ * @param ta - Textarea
+ */
+function resize_HTMLTextArea(ta) {
+		var t=ta.value.replace(/\r\n/g, '\n').split('\n'), sum=0;
+		for (var i=0;i<t.length;i++) if (t[i].length > ta.cols) sum++;
+		ta.rows=sum + t.length + 1;
+		if(ta.value == null || ta.value == "" || ta.rows < 4) ta.rows = 4;
+}
+
+
+/**
+ * Används för att få "annat"-svar att seut som kryssruta med ett textfält.
+ */
 function prepareForm(){
 	var elements = document.getElements('LI.checkedtextfield');
+	var elements_radio = document.getElements('LI.radiotextfield');
+	
 	elements.each(
 	function(listItem) {
 			var textField = listItem.getElementsByTagName("input")[0];
 			var CHECK = "checked";
 			var UNCHECK = "unchecked";
+			listItem.checkedtextfield = true;
+			
+			listItem.className = UNCHECK;
+
+			listItem.onclick = function() {
+				if(listItem.active == true) {
+					textField.blur();
+					listItem.active = false;
+				} else {
+					textField.focus();
+					listItem.active = true;
+				}
+			}
+						
+			textField.onfocus = function() {
+				listItem.className = CHECK;
+				listItem.active = false;
+			}
+			
+			textField.onblur = function() {
+				if ( textField.value == "") {
+					listItem.className = UNCHECK;
+					listItem.active = true;
+				}	
+			}
+		}
+	);
+	
+	elements_radio.each(
+	function(listItem) {
+			var textField = listItem.getElementsByTagName("input")[0];
+			var CHECK = "selected";
+			var UNCHECK = "unselected";
+			listItem.radiotextfield = true;
 			
 			listItem.className = UNCHECK;
 
@@ -95,31 +162,63 @@ function prepareForm(){
 		}
 	);
 }
+var formform;
 
+/* Samlar ihop svar och skickar till servern. */
 function saveForm() {
-	// Samlar ihop svar och skickar till servern.
+	try {
 	formform = $('form_').send({
 		onComplete: function() {
 			var saved = document.getElementById("saved");
 			var date = new Date();
-			fapp.logga($('form_').toQueryString());
-			saved.innerHTML = (date.getHours()<10 ? "0" : "") + date.getHours() + ":" + (date.getMinutes()<10 ? "0" : "") + date.getMinutes();
-			document.getElementById("savetext").style.display='inline';
+			//fapp.logga($('form_').toQueryString());
+			saved.innerHTML = " Sparades kl " + (date.getHours()<10 ? "0" : "") + date.getHours() + ":" + (date.getMinutes()<10 ? "0" : "") + date.getMinutes();
 		}
-	});
+	});	
+	} catch(NS_ERROR_FILE_NOT_FOUND) {
+	
+	}
 } 
 
 var autoSave_ = null;
 
-/* 
- * @param run true aktiverar sparning i tidsintervall
+/*
+ * Spara automatiskt formuläret var 3:e minut 
+ * @param run - true aktiverar sparning i tidsintervall
  */
 function autoSave(run) {
-	if (run == true) { autoSave_ = setInterval("saveForm()", 60 * 1000); }
-	else if (run == false) { clearInterval(autoSave_); }
+	//console.info("autosaveing");
+	//if (run == true) { autoSave_ = setInterval("saveForm()", 60 * 1000); }
+	//else if (run == false) { clearInterval(autoSave_); }
+
+	if (null!=autoSave_) clearInterval(autoSave_);
+	if (run) autoSave_ = setInterval("saveForm()", 60 * 3 * 1000);
+}
+
+/**
+ * Hanterar sökväg till filer beroende på vart man surfar in ifrån
+ * @param filename - filnamnet.
+ * @return String med sökvägen till filen.
+ */
+function path(filename) {	
+	var path = "";
+	
+	if (location.href.match(/zondera.com/)) {
+		/* användaren kommer från zondera.com/ */
+		path = filename;
+	} else {
+		/* kommer troligen in från Hamachi-adress(IP) */
+		path = "http://5.28.219.86/gecko/asp/" + filename;
+	}
+	
+	return path;
+	
 }
 
 
+/*
+ * Klass. 
+ */
 var formApplication = function() {
 	this.onpage = 1;
 	this.currentPageDiv = document.getElementById('page-1');
@@ -127,18 +226,20 @@ var formApplication = function() {
 	this.data = document.location.search;
 	this.hasAddedHighlights = Array();
 	this.missedQuestions = new Hash();
-
+	this.exit = 'exit';
+	this.tack = 'tack';
+	this.logout_close = 'logout_close.asp';
+	this.yellow = 'yellow';
+	this.blue = 'blue';
+	
 	//if (!this.data) data = '?tx1=asdf&v1=4&v2=2&v3=1';
 	if ('welcome'== document.location.search) document.location.search='';
 	
-	// Debug - Skriver ut debug-information i <textarea>
-	if (document.getElementsByTagName('textarea')) {
-		this.ta=document.getElementsByTagName('textarea');
+	this.logga = function(x) {
+		/*if (this.ta) this.ta.value += x + '\n';*/ /*console.info(x);*/
+		try{console.info(x);}
+		catch(e){}
 	}
-	
-	if (this.ta) this.ta=this.ta[0];
-
-	this.logga = function(x) { if (this.ta) this.ta.value += x + '\n'; }
 
 	this.showanswers = function() {
   		var frm=document.forms[0];
@@ -146,7 +247,7 @@ var formApplication = function() {
 		frm.disabled = true;
 		var elt = document.getElementById('laddar');
  		elt.style.display = 'inline';
-
+		
   		var arr=this.data.split(/[\?&]/);
   		var t='#';
   		for (var i=0; i<arr.length; i++) {
@@ -168,7 +269,7 @@ var formApplication = function() {
 					for (var j=0; j<2; j++) o[j].checked = (val==o[j].value);
 					break;
 			 	default:
-			 		this.logga('not handled: '+o.type);
+			 		//this.logga('not handled: '+o.type);
 					break;
 			}
 		}
@@ -178,6 +279,24 @@ var formApplication = function() {
 	}
 
 	this.loader = function() {
+		fapp.lang = document.getElementsByTagName('html')[0].lang;
+		if ('sv'==fapp.lang) {
+			fapp.obl_text = "Det finns obligatoriska frågor som ej besvarats.";
+			fapp.obl_text2= " Var god besvara ";
+			fapp.obl_text3= "fråga";
+			fapp.unanswered_text= "Obesvarade frågor har markerats med gul bakgrund."
+		} else {
+			//english and default is the same, and only needed for foreign languages since 'sv' is the master translation.
+			fapp.obl_text = fapp.messageStore_default['obl_text'] = "There are some obligatory questions still unanswered.";
+			fapp.obl_text2= fapp.messageStore_default['obl_text2']= " Please address ";
+			fapp.obl_text3= fapp.messageStore_default['obl_text3']= "question";
+			fapp.unanswered_text= fapp.messageStore_default['unanswered_text'] = "Unanswered questions are marked with a yellow background."
+
+			var o=document.createNode('script');
+			o.src='js/translations.js';
+			document.getElementById('form').appendNode(o);
+		}
+		
   		var o=document.forms[0].elements.js;
   		if (o && o.value) o.value='1';
 		//js=1 indikerar for "nasta instans" att js finns&funkar.
@@ -189,7 +308,9 @@ var formApplication = function() {
 			setTimeout(_this_showanswers, 900); //lite delay sa man hinner se att ngt hander.
 		}
 		
+		if (!location.search.match(/edit/) && !location.hash.match(/edit/)) FancyForm.start(0, { onSelect: fapp.onSelect } );
 		this.showPage(1);
+		
 	}
 
 	/* 
@@ -202,7 +323,7 @@ var formApplication = function() {
 		if (!to && 1==diff) this.showPage(0); //efter sista sida kommer "Spara"-sidan
 		else this.showPage(ny);
   	}
-
+	
 	this.showPage = function(n) {
 		if (this.notFirstLoad) { //don't highlight on first visit
 			var first = !this.hasAddedHighlights[fapp.onpage];
@@ -220,14 +341,17 @@ var formApplication = function() {
 		for (var i=0; i <= this.maxPages; i++) {
 	  		var o=document.getElementById('page-' + i);			
 			if (o && o.style) o.style.display = (i==n) ? 'block':'none';
-			if (!o) break;
+			//if (!o) break;
   		}
+				
 		this.onpage = n;
 		this.setPageClass('on-page-'+n);
 		this.currentPageDiv = document.getElementById('page-' + n);
+		
+				
 		if (fapp.mark_unanswered) fapp.message_print();
 	}
-
+	
 	/*
 	 * sets a page class, needed by css rules for marking current page in the page navigator
 	 */
@@ -250,7 +374,12 @@ var formApplication = function() {
 		}
 		return sum;
 	}
-
+	
+	/*
+	 * Kollar om frågan är besvarad
+	 * @param question_div - Frågan som ska kontrolleras
+	 * @return 
+	 */
 	this.isUnanswered = function(question_div) {
 		var inputs = question_div.getElements("INPUT");
 		return !inputs.some( function(elt) {
@@ -258,13 +387,23 @@ var formApplication = function() {
 			return elt.getValue();
 		} );
 	}
-
+	
+	/*
+	 * Markerar en fråga som obesvarad, om frågan är obligatorisk skrivs frågenumret ut i meddelande-raden.
+	 * @param question_div - Frågan som ska markeras
+	 * @param isObligatory - Om det är en obligatorisk fråga.
+	 */
 	this.addHighlight = function(question_div, isObligatory) {
 		question_div.addClass("highlight");
 		if (isObligatory) fapp.message_add( question_div );
 		this.hasAddedHighlights[this.onpage] = true;  //TODO fapp eller this ?
 	}
-
+	
+	/*
+	 * Kollar om en fråga ska bli markerad som obesvarad.
+	 * @param question_div - Frågon som ska kontrolleras.
+	 * @return om frågan har blivit markerad som obesvarad
+	 */
 	this.possiblyAddHighlight = function(question_div) {
 		var isObligatory = question_div.className.match(/obligatory/);
 		if (isObligatory || (fapp.mark_unanswered && 0==fapp.missedQuestions.length)) {
@@ -272,7 +411,10 @@ var formApplication = function() {
 		}
 		return (isObligatory ? 1 : 0);
 	}
-
+	
+	/*
+	 * 
+	 */
 	this.addHighlights = function() {
 		if (window.ie) $(fapp.currentPageDiv.id); //denna rad ska troligen raderas
 
@@ -285,16 +427,50 @@ var formApplication = function() {
 		var arr = all_unanswered.map(fapp.possiblyAddHighlight); //depends on fapp.mark_unanswered
 		return fapp.arraySum(arr);
 	}
-
-	this.findQuestionDiv = function(elt) {
-		for (var i=0; i<9; i++) {
-			if (elt.className.match(/question/)) return elt;
-			elt = elt.parentNode;
-		}
+	
+	/*
+	 * Används av funktionerna: findQuestionDiv och findElementDiv.
+	 * Används för att hitta ett elementets närmaste DIV-element.
+	 * @param elt - Elementet som vi ska hitta DIV-elementet åt.
+	 * @param klass - vilken klass DIV:en ska ha, tex. "question" eller "element"
+	 * @return DIV:en om den hittar någon annars NULL
+	 */
+	this.findMyDiv = function(elt,klass) {
+		try {
+			var re = new RegExp(klass);
+		 	for (var i=0; i<9; i++) {
+		 		if (elt.className && elt.className.match(re)) return elt;
+		  		elt = elt.parentNode;
+		 	}
+		} catch(NS_ERROR_UNEXPECTED) { console.info("test catch"); return null; }
 	}
 
+	/*
+	 * Hittar letar efter ett elements parentNode som är en DIV med klassen "Question".
+	 * @param elt - Elementet som vi ska försöka hitta en question-div till.
+	 * @return en question-div om den hittar någon annars NULL
+	 */
+	this.findQuestionDiv = function(elt) {
+		return fapp.findMyDiv(elt, 'question');
+	}
+	
+	/*
+	 * Hittar letar efter ett elements parentNode som är en DIV med klassen "Element".
+	 * @param elt - Elementet som vi ska försöka hitta en element-div till.
+	 * @return en element-div om den hittar någon annars NULL
+	 */
+	this.findElementDiv = function(elt) {
+		return fapp.findMyDiv(elt, 'element');
+	}
+	
+	/*
+	 * 
+	 */
 	this.onSelect = function(event_elt) {
-		if (!fapp.hasAddedHighlights[fapp.onpage]) return;
+		if (!fapp.hasAddedHighlights[fapp.onpage]) {
+			if(!edit_mode) { autoSave(true); }
+			return;
+		}
 		var elt = fapp.findQuestionDiv(event_elt);
 		elt.removeClass("highlight");
 		if (fapp.missedQuestions.hasKey(elt.id)) {
@@ -314,7 +490,12 @@ var formApplication = function() {
 		return false;
 	}
 
+	
 	this.messageStore_default = { }
+	
+	/*
+	 * Översätter textmeddelanden.
+	 */
 	this.tran = function(which) {
 		fapp.messageStore = (msgStore && msgStore[fapp.lang]) ? msgStore[fapp.lang] : fapp.messageStore_default; //caching
 		var txt = fapp.store[which] || fapp.messageStore_default[which]; //if untranslated, falls back to default translations 
@@ -358,10 +539,27 @@ var formApplication = function() {
 		// return '<a href="#' + id + '">' + this.obl_text3 + " " + number + '</a>';
 	}*/
 	
+	/*
+	 * Bygger ihop en html-länk.
+	 * @param id - frågans ID
+	 * @param number - frågans nummer
+	 * @param page - vilken sida frågan ligger på
+	 */
 	this.message_link = function(id, number, page) {
 	return '<a href="#' + id + '" onclick="fapp.showPage(' + page + ')">' + this.obl_text3 + " " + number + '</a>';
 	}
+	
+	/* Anropas vid aktivering av redigeringsläge */
+	this.pause = function() {
+		autoSave(false); FancyForm.initing=1;
+	}
+
+	/* Anropas vid deaktivering av redigeringsläge */
+	this.resume = function() {
+	/* TODO Senare(tm) */
+	}
 }
+
 
 
 //code for version 0.94 ? :-)
@@ -452,6 +650,7 @@ var FancyForm = {
 		});
 
 		//and then get them functional as well, binding the respective events together
+		if (!location.search.match(/edit/))
 		FancyForm.chks.each(function(chk){
 			chk.addEvent('click', function(f){
 				if(!FancyForm.initing && $type(chk.inputElement.onclick) == 'function')
@@ -554,6 +753,13 @@ var FancyForm = {
 };
 
 if (location.href.match(/form/)) {
-	addLoadEvent(function() {FancyForm.start(0, { onSelect: fapp.onSelect } ) } );
 	addLoadEvent(function() {init();});
+	addLoadEvent(function() {
+		var textarea = document.getElementsByTagName("textarea");
+		for(var i = 0; i < textarea.length; i++) {
+			resize_HTMLTextArea(textarea[i]);
+			textarea[i].onchange = function() { resize_HTMLTextArea(this); };
+		}
+	});	
 }
+
