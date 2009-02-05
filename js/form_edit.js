@@ -3,6 +3,7 @@ var active_theme;
 
 var form_redigerades = null;
 var form_sparades = null;
+var tabb = "\u00a0\u00a0\u00a0\u00a0\u00a0";
 
 /* A create element helper that can add id, className and innerHTML directly.
  * @param name TagName + '#' + id + '.' + className + '.' + className ...
@@ -13,7 +14,7 @@ var form_sparades = null;
 function dce(name,html) {
 	var arr = name.replace(/([$_.#])/g,',$1').split(/,/);
 	if (!arr.length) return document.createElement(name);
-	var	elt = $(document.createElement(arr[0]));
+	var elt = $(document.createElement(arr[0]));
 	for (var i=1; i<arr.length; i++) {
 		var x=arr[i];
 		if (x.match(/^[$#]/)) elt.id = x.substring(1,x.length);
@@ -139,7 +140,6 @@ function toggleEditMode() {
 		zebra.onclick = function() { refreshOdd(); return false; }
 		
 		// Omnumrera | Randa om | Färgtema ---- Ny fråga | Snabbimport --- Debug: Form-spara, resultattxt  --- Om...
-		var tabb = "\u00a0\u00a0\u00a0\u00a0\u00a0";
 		
 		tool_p.appendChild(document.createTextNode(tabb));
 		tool_p.appendChild(numbers);
@@ -196,7 +196,7 @@ function toggleEditMode() {
 function show_fast_import(where) {
 	var import_box = document.getElementById("import");
 	if(!import_box) {
-		import_box = dce("form#import", '<p><br>Importera: <select><option>Placering</option><option>1</option><option>2</option></select> <a href="#">Infoga</a> <a href="#">Ersätt</a> <a href="#">Infoga allt</a></p><textarea style="font-size: 102%;" cols="120" rows="10"></textarea>');
+		import_box = dce("form#import", '<p><br>Importera: <select><option>Placering</option><option>1</option><option>2</option></select>' + tabb + ' <a href="#" style="font-weight:900;">Infoga</a> <a href="#">Ersätt</a> <a href="#">Infoga allt</a></p><textarea style="font-size: 102%;" cols="120" rows="10"></textarea>');
 		import_box.name = "import";
 		where.appendChild(import_box);
 	} else {
@@ -402,15 +402,15 @@ function fetch_questions() {
 	
 	//console.group("To: bygg_statistik.asp");
 	for (var i=0; i<questions.length; i++) {
-		var question_text = $(questions[i]).getElement(".qtext").innerHTML;
+		var q = $(questions[i]), question_text = q.getElement(".qtext").innerHTML;
 		
-		var div_text = $(questions[i]).getElements("DIV.qtext");
+		var div_text = q.getElements("DIV.qtext");
 		for(var j = 0; j < div_text.length; j++) { question_text += '\n' + div_text[j].innerHTML; }
 		
 		var question_type = "-";
 		var question_have_other = "";
-		if(!questions[i].parentNode.hasClass("scale-group")) {
-			var labels = $(questions[i]).getElements(".answer label");
+		if(!$(q.parentNode).hasClass("scale-group")) {
+			var labels = q.getElements(".answer label");
 			
 			for (var x=0; x<labels.length;x++) {
 				var children = labels[x].childNodes;
@@ -424,15 +424,15 @@ function fetch_questions() {
 				if(labels[x].parentNode.checkedtextfield || labels[x].parentNode.radiotextfield) { question_have_other = "last-is-textfield"; }
 			}
 				
-		var inputs = $(questions[i]).getElements(".answer input");
+		var inputs = q.getElements(".answer input");
 		if(inputs[0]) {
 			if(inputs[0].hasClass("r")) { question_type = "-5"; }
 			else if(inputs[0].hasClass("cb")) { question_type = "8"; }
 		}
-		if(questions[i].hasClass("big-text")) { question_type = "-1"; }
+		if(q.hasClass("big-text")) { question_type = "-1"; }
 		} else { question_type = "0"; }
 		
-		var string = questions[i].id + "," + question_type + ",#" + question_text + "#," + questions[i].className + " " + question_have_other + "\n\n";
+		var string = q.id + "," + question_type + ",#" + question_text + "#," + q.className + " " + question_have_other + "\n\n";
 		//console.info(string);
 		strings.push(string);
 	}
