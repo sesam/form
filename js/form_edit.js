@@ -1186,7 +1186,7 @@ function question(action, question) {
 				li.className = "checkedtextfield";
 				label.className = "textfield";
 				input.name = "t" + input.name.replace(/q/,'') + "_" + (i + 1);
-				input.value = null;
+				input.value = "";
 				
 				label.appendChild(document.createTextNode(answer.label + " "));
 				label.appendChild(input);
@@ -1199,7 +1199,7 @@ function question(action, question) {
 					li.className = "radiotextfield";
 					label.className = "textfield";
 					input.name = "t" + input.name.replace(/q/,'') + "_" + (i + 1);
-					input.value = null;
+					input.value = "";
 					
 					label.appendChild(document.createTextNode(answer.label + " "));
 					label.appendChild(input);
@@ -1984,10 +1984,8 @@ function showEditBox(_question) {
 				var inputfield = document.createElement("input");
 				inputfield.type = "text";
 				if(answer.label) { inputfield.value = answer.label; }
-				inputfield.questionType = answer.questionType;
-				
-				li.setAttribute("class", answer.questionType);
-			
+				inputfield.questionType = answer.questionType;	
+				li.className = answer.questionType;	
 				li.appendChild(inputfield);
 			
 				var removeField = document.createElement("div");
@@ -2076,6 +2074,11 @@ function showEditBox(_question) {
 				var inputfield = document.createElement("input");
 				inputfield.type = "text";
 				
+				var li_input = lis[0].getElementsByTagName("input")[0];
+								
+				var type = lis[0].className;
+				if(type == "" || type == null) type = lis[0].questionType; // Om
+				
 				if(lis[0].className == "checkbox") {
 					inputfield.questionType = "checkbox_line";
 					li.setAttribute("class", "checkbox_line");
@@ -2085,7 +2088,6 @@ function showEditBox(_question) {
 					li.setAttribute("class", "radio_line");
 				}
 				
-			
 				li.appendChild(inputfield);
 			
 				var removeField = document.createElement("div");

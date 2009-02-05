@@ -251,7 +251,9 @@ var formApplication = function() {
   		var t='#';
   		for (var i=0; i<arr.length; i++) {
 			var pair=arr[i].split(/=/), key=pair[0], val=pair[1];
+			console.info(key, val);
 			var o=frm.elements[key];
+			console.info("o= ", o);
 			if (!o) {
 				//logga('unhandled pair: ' + arr[i]);
 				continue;
@@ -265,7 +267,7 @@ var formApplication = function() {
 			 		o.checked = val;
 					break;
 			 	case 'radio':
-					for (var j=0; j<2; j++) o[j].checked = (val==o[j].value);
+					for (var j=0; j<o.length; j++) o[j].checked = (val==o[j].value);
 					break;
 			 	default:
 			 		//this.logga('not handled: '+o.type);
@@ -300,11 +302,11 @@ var formApplication = function() {
   		if (o && o.value) o.value='1';
 		//js=1 indikerar for "nasta instans" att js finns&funkar.
 
-  		if (this.data && this.data.length>4) setTimeout(fapp.showanswers, 900); //fyll i bef. svar
+  		if (this.data && this.data.length>4) fapp.showanswers(); //fyll i bef. svar
 
 		if (!location.search.match(/edit/) && !location.hash.match(/edit/)) FancyForm.start(0, { onSelect: fapp.onSelect } );
 		this.showPage(1);
-		
+		//this.showanswers();
 	}
 
 	/* 
@@ -565,6 +567,8 @@ var formApplication = function() {
 var FancyForm = {
 	start: function(elements, options){
 		FancyForm.initing = 1;
+		
+		fapp.showanswers();
 		
 		if($type(elements)!='array') elements = $$('input'); //start with no arguments fancifies all inputs
 		FancyForm.extra = {}
