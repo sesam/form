@@ -35,7 +35,7 @@ function init() {
 		fapp.setPageClass('print');		
 	}
 
-	if (form_edit_init) form_edit_init();
+	if (form_edit_init && $('saved').textContent.length<10 ) form_edit_init();
 }
 
 function addLoadEvent(func) {
@@ -233,7 +233,6 @@ var formApplication = function() {
 	this.blue = 'blue';
 	
 	//if (!this.data) data = '?tx1=asdf&v1=4&v2=2&v3=1';
-	if ('welcome'== document.location.search) document.location.search='';
 	
 	this.logga = function(x) {
 		/*if (this.ta) this.ta.value += x + '\n';*/ /*console.info(x);*/
@@ -301,13 +300,8 @@ var formApplication = function() {
   		if (o && o.value) o.value='1';
 		//js=1 indikerar for "nasta instans" att js finns&funkar.
 
-  		if ('welcome'==document.location.search) document.location.search='';
-  		else { 
-			var self = this;
-			var _this_showanswers = function() {self.showanswers()};
-			setTimeout(_this_showanswers, 900); //lite delay sa man hinner se att ngt hander.
-		}
-		
+  		if (this.data && this.data.length>4) setTimeout(fapp.showanswers, 900); //fyll i bef. svar
+
 		if (!location.search.match(/edit/) && !location.hash.match(/edit/)) FancyForm.start(0, { onSelect: fapp.onSelect } );
 		this.showPage(1);
 		
